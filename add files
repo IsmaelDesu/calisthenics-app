@@ -1,0 +1,636 @@
+{
+  "name": "Callisthénie Pro",
+  "short_name": "CALI PRO",
+  "description": "Programme callisthénie débutant → expert sur 6 mois",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0a0a0f",
+  "theme_color": "#00E5FF",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
+
+const CACHE = "cali-v1";
+const ASSETS = ["./", "./index.html", "./manifest.json", "./icons/icon-192.png", "./icons/icon-512.png"];
+
+self.addEventListener("install", e => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", e => {
+  e.waitUntil(caches.keys().then(keys =>
+    Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+  ));
+  self.clients.claim();
+});
+
+self.addEventListener("fetch", e => {
+  e.respondWith(
+    caches.match(e.request).then(cached => cached || fetch(e.request))
+  );
+});
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="theme-color" content="#0a0a0f"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<title>Callisthénie Pro</title>
+<link rel="manifest" href="manifest.json"/>
+<link rel="icon" href="icons/icon-192.png"/>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Bebas+Neue&display=swap" rel="stylesheet"/>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  :root{
+    --bg:#0a0a0f; --bg2:#0e0e18; --bg3:#111128;
+    --accent:#00E5FF; --text:#e8e8e8; --muted:#666; --dim:#333;
+    --font-mono:'Share Tech Mono',monospace; --font-title:'Bebas Neue',cursive;
+  }
+  html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font-mono);overflow:hidden;}
+  
+  /* LAYOUT */
+  #app{display:flex;flex-direction:column;height:100%;height:100dvh;}
+  
+  /* HEADER */
+  #header{
+    flex-shrink:0;
+    background:var(--bg3);
+    border-bottom:2px solid var(--accent);
+    padding:env(safe-area-inset-top,12px) 16px 12px;
+    padding-top:calc(env(safe-area-inset-top,0px) + 12px);
+  }
+  .header-row{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .phase-badge{
+    font-family:var(--font-title);font-size:28px;letter-spacing:2px;
+    color:var(--accent);line-height:1;
+  }
+  .phase-sub{font-size:11px;color:#aaa;letter-spacing:3px;margin-top:2px;}
+  .phase-meta{font-size:10px;color:var(--muted);margin-top:3px;letter-spacing:1px;}
+  #btn-toggle{
+    background:transparent;border:1px solid var(--accent);color:var(--accent);
+    padding:7px 12px;font-size:9px;letter-spacing:2px;font-family:var(--font-mono);
+    cursor:pointer;flex-shrink:0;transition:all .2s;
+  }
+  #btn-toggle.active{background:var(--accent);color:#000;font-weight:700;}
+
+  /* PHASE PILLS */
+  #phase-bar{
+    flex-shrink:0;display:flex;gap:6px;overflow-x:auto;
+    padding:10px 16px;background:var(--bg);
+    scrollbar-width:none;
+  }
+  #phase-bar::-webkit-scrollbar{display:none;}
+  .phase-pill{
+    flex-shrink:0;padding:6px 14px;font-size:9px;letter-spacing:2px;
+    font-family:var(--font-mono);font-weight:700;cursor:pointer;
+    background:#111;color:var(--muted);border:1px solid #1a1a1a;
+    transition:all .2s;
+  }
+  .phase-pill.active{color:#000;}
+
+  /* SCROLL AREA */
+  #content{flex:1;overflow-y:auto;padding:0 0 80px;scrollbar-width:none;}
+  #content::-webkit-scrollbar{display:none;}
+
+  /* GOAL BANNER */
+  .goal-banner{
+    margin:12px 16px;padding:12px 16px;
+    background:var(--bg2);border-left:3px solid var(--accent);
+    font-size:12px;color:#aaa;line-height:1.6;
+  }
+  .goal-label{font-weight:700;letter-spacing:1px;}
+
+  /* DAY TABS */
+  #day-bar{
+    display:flex;gap:5px;overflow-x:auto;padding:0 16px 10px;
+    scrollbar-width:none;
+  }
+  #day-bar::-webkit-scrollbar{display:none;}
+  .day-pill{
+    flex-shrink:0;padding:7px 14px;font-size:9px;letter-spacing:1px;
+    font-family:var(--font-mono);cursor:pointer;background:transparent;
+    color:var(--muted);border:1px solid #1a1a1a;transition:all .2s;
+  }
+  .day-pill.active{color:#fff;background:#1a1a2e;}
+
+  /* DAY TITLE */
+  .day-title{padding:0 16px 12px;font-size:12px;font-weight:700;letter-spacing:2px;color:#fff;}
+  .day-title-bar{width:36px;height:2px;background:var(--accent);margin-top:6px;}
+
+  /* EXERCISE ROWS */
+  .ex-row{
+    display:grid;grid-template-columns:22px 1fr 36px 60px;
+    gap:0 12px;align-items:center;padding:11px 16px;
+  }
+  .ex-row:nth-child(even){background:var(--bg2);}
+  .ex-row:nth-child(odd){background:var(--bg);}
+  .ex-num{font-size:9px;color:var(--dim);font-weight:700;}
+  .ex-name{font-size:13px;color:#ddd;font-weight:600;line-height:1.3;}
+  .ex-note{font-size:10px;color:#555;margin-top:2px;}
+  .ex-sets{font-size:12px;font-weight:700;text-align:center;}
+  .ex-reps{font-size:10px;color:#888;text-align:right;line-height:1.3;}
+  .ex-row.highlight{border-left:2px solid var(--accent);}
+
+  /* TIPS */
+  .tips-section{padding:16px;}
+  .tips-label{font-size:9px;color:#333;letter-spacing:3px;margin-bottom:10px;}
+  .tip-row{
+    display:flex;gap:10px;padding:9px 0;
+    border-bottom:1px solid #111;font-size:11px;color:#555;line-height:1.5;
+  }
+  .tip-arrow{flex-shrink:0;font-weight:700;}
+
+  /* PROGRESSION TABLE */
+  #progression{padding:0 0 20px;}
+  .prog-table{width:100%;border-collapse:collapse;font-size:10px;}
+  .prog-table th{
+    padding:8px 8px;border-bottom:1px solid #1a1a1a;
+    color:var(--muted);font-size:8px;letter-spacing:2px;text-align:center;
+  }
+  .prog-table th:first-child{text-align:left;padding-left:16px;}
+  .prog-table td{padding:9px 8px;border-bottom:1px solid #0e0e0e;text-align:center;}
+  .prog-table td:first-child{text-align:left;padding-left:16px;color:#ccc;font-weight:700;font-size:11px;}
+  .prog-table td.active-col{font-weight:700;}
+
+  /* BOTTOM NAV */
+  #bottom-nav{
+    flex-shrink:0;display:flex;justify-content:space-between;align-items:center;
+    padding:10px 16px;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 10px);
+    background:var(--bg3);border-top:1px solid #1a1a1a;
+    position:sticky;bottom:0;
+  }
+  .nav-btn{
+    padding:9px 20px;font-size:9px;letter-spacing:2px;
+    font-family:var(--font-mono);font-weight:700;cursor:pointer;
+  }
+  .nav-btn.prev{background:transparent;border:1px solid #222;color:#555;}
+  .nav-btn.next{border:none;color:#000;}
+  .nav-btn:disabled{opacity:.3;cursor:default;}
+  .nav-info{text-align:center;font-size:9px;color:#333;letter-spacing:1px;line-height:1.5;}
+
+  /* INSTALL BANNER */
+  #install-banner{
+    display:none;position:fixed;bottom:70px;left:16px;right:16px;
+    background:#111;border:1px solid var(--accent);padding:14px 16px;
+    z-index:200;
+  }
+  #install-banner p{font-size:11px;color:#aaa;margin-bottom:10px;line-height:1.5;}
+  #install-banner .row{display:flex;gap:8px;}
+  #btn-install{
+    flex:1;padding:10px;background:var(--accent);color:#000;
+    border:none;font-family:var(--font-mono);font-size:10px;
+    letter-spacing:2px;font-weight:700;cursor:pointer;
+  }
+  #btn-dismiss{
+    padding:10px 14px;background:transparent;color:var(--muted);
+    border:1px solid #333;font-family:var(--font-mono);font-size:9px;cursor:pointer;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <div class="header-row">
+      <div>
+        <div class="phase-badge" id="h-label">PHASE 1</div>
+        <div class="phase-sub" id="h-sub">FONDATIONS</div>
+        <div class="phase-meta" id="h-meta">Semaines 1–4 · 3×/semaine</div>
+      </div>
+      <button id="btn-toggle" onclick="toggleView()">PROGRESSIONS →</button>
+    </div>
+  </div>
+
+  <div id="phase-bar"></div>
+
+  <div id="content">
+    <div id="workout-view"></div>
+    <div id="progression" style="display:none"></div>
+  </div>
+
+  <div id="bottom-nav">
+    <button class="nav-btn prev" id="btn-prev" onclick="navigate(-1)">← PRÉC.</button>
+    <div class="nav-info" id="nav-info"></div>
+    <button class="nav-btn next" id="btn-next" onclick="navigate(1)">SUIV. →</button>
+  </div>
+</div>
+
+<div id="install-banner">
+  <p>📲 <strong style="color:#fff">Installer l'app</strong> sur ton Pixel pour un accès hors-ligne !</p>
+  <div class="row">
+    <button id="btn-install" onclick="installApp()">INSTALLER</button>
+    <button id="btn-dismiss" onclick="dismissBanner()">Plus tard</button>
+  </div>
+</div>
+
+<script>
+const PHASES = [
+  {
+    label:"PHASE 1", sub:"FONDATIONS", color:"#00E5FF",
+    duration:"Semaines 1–4", freq:"3×/semaine",
+    goal:"Maîtriser les fondamentaux, activer les stabilisateurs, préparer les tendons.",
+    days:[
+      { name:"JOUR A — Push / Core", exercises:[
+        {n:"Échauffement articulaire",s:"—",r:"10 min",note:"Épaules, poignets, hanches"},
+        {n:"Pompes classiques",s:"4",r:"12–15",note:"Tempo 3-1-1, full ROM"},
+        {n:"Pike Push-up",s:"3",r:"8–10",note:"Prépare le HSPU",hl:true},
+        {n:"Dips (parallèles ou chaise)",s:"4",r:"10–12",note:"Descente contrôlée"},
+        {n:"Hollow Body Hold",s:"4",r:"20 sec",note:"Lombaires collées au sol"},
+        {n:"Planche frontale",s:"4",r:"40 sec",note:"Corps rigide, regard sol"},
+        {n:"Superman Hold",s:"3",r:"15 sec",note:"Extension dorsale"},
+      ]},
+      { name:"JOUR B — Pull / Legs", exercises:[
+        {n:"Échauffement scapulaire",s:"—",r:"5 min",note:"Rotations, band pull-apart"},
+        {n:"Traction assistée / négatives",s:"5",r:"5 ou 5×5s",note:"Si <5 tractions : négatives 5 sec"},
+        {n:"Inverted Row",s:"4",r:"10–12",note:"Table basse ou barre basse"},
+        {n:"Face Pull (élastique)",s:"3",r:"15",note:"Santé rotateurs"},
+        {n:"Squat bulgare",s:"3",r:"8/jambe",note:"Pied arrière surélevé"},
+        {n:"Hip Hinge / Good Morning",s:"3",r:"12",note:"Activation ischio-jambiers"},
+        {n:"Calf raise unilatéral",s:"3",r:"15/jambe",note:""},
+      ]},
+      { name:"JOUR C — Full Body + Mobilité", exercises:[
+        {n:"Échauffement dynamique",s:"—",r:"8 min",note:"Leg swings, inchworm…"},
+        {n:"Muscle-up Prog. : Jumping",s:"5",r:"5",note:"Sauter pour passer la barre",hl:true},
+        {n:"Pompes Archer",s:"3",r:"6/côté",note:"Vers le one-arm push-up"},
+        {n:"L-sit Progression (sol)",s:"5",r:"10 sec",note:"Genoux pliés d'abord"},
+        {n:"Pistol Squat Progression",s:"3",r:"6/jambe",note:"Avec aide si nécessaire"},
+        {n:"Étirements mobilité",s:"—",r:"15 min",note:"Hanches, pecs, épaules"},
+      ]},
+    ],
+    tips:[
+      "Repos 2–3 min entre séries lourdes, 90 sec sur isolation.",
+      "Place les séances les jours sans foot (ex: Lun / Mer / Ven).",
+      "Semaine 4 = semaine de décharge : réduire volume de 40%.",
+    ]
+  },
+  {
+    label:"PHASE 2", sub:"FORCE & VOLUME", color:"#FFEA00",
+    duration:"Semaines 5–8", freq:"4×/semaine",
+    goal:"Augmenter la charge de travail, consolider les patterns, introduire les anneaux.",
+    days:[
+      { name:"JOUR A — Push Heavy", exercises:[
+        {n:"Dips lestés",s:"5",r:"6–8",note:"+5–10 kg ou gilet"},
+        {n:"Pompes Archer",s:"4",r:"8/côté",note:""},
+        {n:"Ring Push-up",s:"4",r:"10",note:"Anneaux instables = +activation",hl:true},
+        {n:"Pike Push-up décliné",s:"4",r:"8–10",note:"Pieds sur banc"},
+        {n:"Planche latérale rotative",s:"3",r:"10/côté",note:""},
+        {n:"Ab Wheel Rollout",s:"4",r:"8–12",note:"Gainage dynamique"},
+      ]},
+      { name:"JOUR B — Pull Heavy", exercises:[
+        {n:"Tractions lestées",s:"5",r:"5–6",note:"+5–10 kg"},
+        {n:"Tractions prise serrée",s:"4",r:"6–8",note:"Biceps + dorsaux"},
+        {n:"Ring Row incliné",s:"4",r:"10–12",note:"Pieds plus hauts = plus dur"},
+        {n:"Scapular Pull-up",s:"4",r:"10",note:"Active fixateurs scapulaires"},
+        {n:"Curl élastique",s:"3",r:"12",note:"Entretien biceps"},
+        {n:"Dead Hang",s:"3",r:"45 sec",note:"Santé des épaules",hl:true},
+      ]},
+      { name:"JOUR C — Skills", exercises:[
+        {n:"Muscle-up : False Grip Hold",s:"5",r:"5 × 3s",note:"Poignets par-dessus la barre",hl:true},
+        {n:"Handstand contre mur",s:"5",r:"20–30 sec",note:"Face au mur d'abord"},
+        {n:"L-sit progression",s:"5",r:"15 sec",note:"1 jambe tendue si possible"},
+        {n:"Skin the Cat (anneaux)",s:"4",r:"4–5",note:"Mobilité épaules extrême"},
+        {n:"Tuck Front Lever Hold",s:"4",r:"8 sec",note:"Genoux regroupés",hl:true},
+      ]},
+      { name:"JOUR D — Legs + Explosivité", exercises:[
+        {n:"Pistol Squat",s:"4",r:"6/jambe",note:"Sans aide si possible"},
+        {n:"Box Jump",s:"5",r:"5",note:"Max hauteur, atterrissage souple"},
+        {n:"Nordic Curl",s:"4",r:"5–6",note:"Prévention ischio — crucial foot",hl:true},
+        {n:"Shrimp Squat",s:"3",r:"5/jambe",note:"Progression pistol"},
+        {n:"Jumping Lunge",s:"3",r:"10/jambe",note:"Explosivité"},
+        {n:"Sprint 20m",s:"6",r:"×",note:"Récup 45 sec"},
+      ]},
+    ],
+    tips:[
+      "Introduis les anneaux progressivement : commencer à 60–70 cm du sol.",
+      "Sur les skills (handstand, L-sit) : qualité > quantité absolue.",
+      "Semaine 8 = décharge : volume -40%, maintien intensité.",
+    ]
+  },
+  {
+    label:"PHASE 3", sub:"SKILLS INTER.", color:"#FF6B00",
+    duration:"Semaines 9–16", freq:"4–5×/semaine",
+    goal:"Muscle-up, Handstand, L-sit complet, Front Lever Tuck. Niveau intermédiaire confirmé.",
+    days:[
+      { name:"JOUR A — Muscle-up & Push", exercises:[
+        {n:"Muscle-up Kipping (barre)",s:"5",r:"3–5",note:"D'abord avec élan, puis contrôle",hl:true},
+        {n:"Ring Dip Profond",s:"4",r:"8",note:"ROM complet, anneaux tournés"},
+        {n:"Pompe un bras progression",s:"4",r:"5/côté",note:"Main à terre, autre sur balle"},
+        {n:"Dips lestés",s:"4",r:"6–8",note:"+10–15 kg"},
+        {n:"Hollow Body Rocks",s:"4",r:"20 reps",note:"Gainage dynamique"},
+      ]},
+      { name:"JOUR B — Handstand", exercises:[
+        {n:"Handstand libre",s:"10",r:"tentatives 10s",note:"Loin du mur, équilibre libre",hl:true},
+        {n:"HSPU partiel (mur)",s:"5",r:"5–6",note:"Descente sur tête, push"},
+        {n:"Pike Push-up déficit",s:"4",r:"8",note:"Mains surélevées"},
+        {n:"Crow Pose hold",s:"5",r:"15 sec",note:"Compression des hanches"},
+        {n:"L-sit complet sol",s:"5",r:"15–20 sec",note:"Les deux jambes tendues",hl:true},
+        {n:"V-sit progression",s:"3",r:"8 sec",note:"Hanches > 90° du buste"},
+      ]},
+      { name:"JOUR C — Pull & Front Lever", exercises:[
+        {n:"Front Lever Tuck",s:"5",r:"10 sec",note:"Corps horizontal, bras tendus",hl:true},
+        {n:"Front Lever Row",s:"4",r:"5",note:"Depuis tuck front lever"},
+        {n:"Tractions lestées",s:"5",r:"4–5",note:"+15–20 kg"},
+        {n:"One Arm Pull-up prog.",s:"4",r:"6/bras",note:"Élastique ou towel assist"},
+        {n:"Tractions prise neutre",s:"3",r:"8",note:"Pour varier les angles"},
+      ]},
+      { name:"JOUR D — Legs Athlétique", exercises:[
+        {n:"Pistol Squat lesté",s:"4",r:"5/jambe",note:"+5–8 kg goblet style"},
+        {n:"Nordic Curl",s:"4",r:"6",note:"Crucial chaque semaine",hl:true},
+        {n:"Saut profondeur + rebond",s:"5",r:"5",note:"Plyométrie réactive"},
+        {n:"Broad Jump",s:"5",r:"5",note:"Max distance"},
+        {n:"Step-up explosif",s:"3",r:"8/jambe",note:""},
+      ]},
+      { name:"JOUR E — Mobilité & Gainage", exercises:[
+        {n:"Jefferson Curl",s:"3",r:"8",note:"Très léger, chaîne postérieure"},
+        {n:"Pancake stretch",s:"—",r:"5 min",note:""},
+        {n:"Shoulder dislocates",s:"3",r:"10",note:"Avec bâton ou élastique"},
+        {n:"Hanging Knee Raise",s:"3",r:"15",note:""},
+        {n:"Dragon Flag progression",s:"4",r:"5",note:"Gainage total",hl:true},
+      ]},
+    ],
+    tips:[
+      "Le muscle-up : d'abord kipping, puis strict (2–4 semaines supplémentaires).",
+      "Handstand libre : 5–10 min de pratique quotidienne, même hors séance.",
+      "Semaines 12 et 16 : décharge obligatoire.",
+    ]
+  },
+  {
+    label:"PHASE 4", sub:"NIVEAU AVANCÉ", color:"#FF1744",
+    duration:"Semaines 17–24", freq:"5×/semaine",
+    goal:"Muscle-up strict, HSPU strict, Front Lever avancé, Planche Tuck. Entrée dans l'élite.",
+    days:[
+      { name:"JOUR A — Muscle-up Strict", exercises:[
+        {n:"Muscle-up Strict (barre)",s:"6",r:"3–4",note:"Pas d'élan, transition lente",hl:true},
+        {n:"Ring Muscle-up",s:"4",r:"3",note:"Plus difficile qu'à la barre"},
+        {n:"HSPU strict complet",s:"5",r:"5",note:"Head to floor, full extension",hl:true},
+        {n:"HSPU lestés / déficit",s:"4",r:"4",note:"+5 kg ou mains surélevées"},
+        {n:"One Arm Push-up",s:"4",r:"5/côté",note:"Sol, jambes écartées si besoin"},
+      ]},
+      { name:"JOUR B — Planche & Compression", exercises:[
+        {n:"Planche Tuck (anneaux)",s:"6",r:"8–12 sec",note:"Corps parallèle au sol",hl:true},
+        {n:"Planche Tuck Push-up",s:"4",r:"4–5",note:"Pliométrie dans la position"},
+        {n:"Straddle Planche prog.",s:"5",r:"5 sec",note:"Jambes écartées"},
+        {n:"L-sit to V-sit",s:"4",r:"8",note:"Transition dynamique"},
+        {n:"Manna progression",s:"4",r:"8 sec",note:"Compression extrême"},
+      ]},
+      { name:"JOUR C — Front Lever & Pull", exercises:[
+        {n:"Front Lever Straddle",s:"5",r:"8 sec",note:"Jambes écartées, presque full",hl:true},
+        {n:"Front Lever Pull",s:"5",r:"5",note:"Tractions depuis FL position"},
+        {n:"One Arm Pull-up",s:"5",r:"3/bras",note:"Avec aide minimale",hl:true},
+        {n:"Back Lever",s:"4",r:"10 sec",note:"Autre skill de levier"},
+        {n:"Tractions L-sit",s:"4",r:"6",note:"Jambes tendues en bas"},
+      ]},
+      { name:"JOUR D — Handstand Avancé", exercises:[
+        {n:"Handstand 60 sec",s:"5",r:"tentatives",note:"Balance libre, doigts actifs",hl:true},
+        {n:"Handstand Walk",s:"5",r:"5 pas",note:"Déplacements en équilibre"},
+        {n:"HSPU déficit full ROM",s:"4",r:"5",note:"Mains sur parallettes"},
+        {n:"Press HS progression",s:"5",r:"4–5",note:"Depuis L-sit vers HS"},
+        {n:"Pike compression",s:"3",r:"15",note:"Gainage lombaires"},
+      ]},
+      { name:"JOUR E — Athletic & Récup", exercises:[
+        {n:"Pistol lesté (haltère)",s:"4",r:"5/jambe",note:"+10–12 kg"},
+        {n:"Sprint 30m",s:"6",r:"×",note:"Récup complète"},
+        {n:"Dragon Flag",s:"4",r:"8",note:"Plein contrôle"},
+        {n:"Jefferson Curl",s:"3",r:"8",note:"+léger lest"},
+        {n:"Mobilité complète",s:"—",r:"20 min",note:"Priorité récupération"},
+      ]},
+    ],
+    tips:[
+      "Le muscle-up strict demande patience : 2–4 semaines de plus si besoin.",
+      "La planche est un marathon : 6–18 mois selon morphologie.",
+      "Douleur aux coudes ou épaules = stop immédiat + consultation.",
+    ]
+  },
+  {
+    label:"PHASE 5", sub:"EXPERT", color:"#AA00FF",
+    duration:"Mois 6+", freq:"5–6×/semaine",
+    goal:"Planche Full, One Arm Pull-up, 90° HSPU, Front Lever complet. Niveau compétition / elite.",
+    days:[
+      { name:"JOUR A — Planche Full", exercises:[
+        {n:"Full Planche (tentatives)",s:"8",r:"3–5 sec",note:"Progressions quotidiennes",hl:true},
+        {n:"Planche Push-up Straddle",s:"5",r:"3–4",note:"Le Saint Graal du push"},
+        {n:"HSPU Déficit Full ROM",s:"5",r:"5–6",note:"Mains sur parallettes hautes"},
+        {n:"90° HSPU",s:"4",r:"3",note:"Bras parallèles au sol à mi-chemin",hl:true},
+        {n:"Press HS depuis sol",s:"5",r:"3",note:"Sans élan"},
+      ]},
+      { name:"JOUR B — One Arm Pull-up", exercises:[
+        {n:"One Arm Pull-up strict",s:"6",r:"2–3/bras",note:"Seul ou aide minimale",hl:true},
+        {n:"Full Front Lever",s:"5",r:"8 sec",note:"Corps parfaitement horizontal",hl:true},
+        {n:"Front Lever Pull strict",s:"5",r:"4–5",note:""},
+        {n:"One Arm Hang scapula",s:"4",r:"20 sec/bras",note:""},
+        {n:"Archer Pull-up",s:"4",r:"5/côté",note:"Bras opposé tendu"},
+      ]},
+      { name:"JOUR C — Skills Freestyle", exercises:[
+        {n:"Iron Cross prog. (anneaux)",s:"5",r:"5 sec",note:"Bras tendus à l'horizontal",hl:true},
+        {n:"Maltese progression",s:"4",r:"4 sec",note:"Planche + épaules en avant"},
+        {n:"Manna complet",s:"4",r:"8 sec",note:""},
+        {n:"Handstand pirouette",s:"5",r:"×",note:"Rotation en équilibre"},
+        {n:"Muscle-up transition slow",s:"4",r:"3",note:"Transition en 5 secondes"},
+      ]},
+      { name:"JOUR D — Force Max", exercises:[
+        {n:"Tractions lestées max",s:"5",r:"3",note:"+30–40 kg si atteint"},
+        {n:"Dips lestés max",s:"5",r:"3",note:"+30–40 kg si atteint"},
+        {n:"Pistol lesté max",s:"4",r:"4/jambe",note:"+15–20 kg"},
+        {n:"Dragon Flag lent",s:"4",r:"6",note:"5 sec descente"},
+        {n:"Nordic Curl maintenance",s:"3",r:"6",note:""},
+      ]},
+      { name:"JOUR E/F — Flow & Mobilité", exercises:[
+        {n:"Flow callisthénie libre",s:"—",r:"20–30 min",note:"Enchaîner les skills en fluidité",hl:true},
+        {n:"Jefferson curl lourd",s:"3",r:"6",note:""},
+        {n:"Deep squat mobility",s:"—",r:"10 min",note:""},
+        {n:"Épaules & poignets",s:"—",r:"15 min",note:"Prévention clé"},
+      ]},
+    ],
+    tips:[
+      "À ce stade, individualise selon tes faiblesses spécifiques.",
+      "Compétition possible : Street Workout, Calisthenics World…",
+      "La planche full peut prendre 1–3 ans selon la morphologie (bras longs = plus dur).",
+    ]
+  },
+];
+
+const PROGRESSIONS = [
+  {skill:"Tractions", cols:["Négatives 5s","Lestées +10kg","One Arm assist","One Arm strict","OAP complet"]},
+  {skill:"Dips", cols:["BW strict","Lestés +10kg","Ring Dip","Ring Muscle-up","Dips +40kg"]},
+  {skill:"Pompes", cols:["Archer","Ring Push-up","1 bras assist","One Arm","Planche Push-up"]},
+  {skill:"Handstand", cols:["Mur face","Libre 10s","Libre 30s","HS Walk","Press HS"]},
+  {skill:"Front Lever", cols:["—","Tuck 10s","Straddle 8s","Full 8s","FL Pull strict"]},
+  {skill:"Planche", cols:["—","—","Tuck 10s","Straddle 8s","Full Planche"]},
+  {skill:"Gainage", cols:["Hollow 20s","Ab Wheel","L-sit 15s","Dragon Flag","Manna"]},
+];
+
+let state = { phase: 0, day: 0, showProg: false };
+
+function getPhase(){ return PHASES[state.phase]; }
+function getColor(){ return getPhase().color; }
+
+function render(){
+  const p = getPhase();
+  document.documentElement.style.setProperty('--accent', p.color);
+  
+  // Header
+  document.getElementById('h-label').textContent = p.label;
+  document.getElementById('h-sub').textContent = p.sub;
+  document.getElementById('h-meta').textContent = `${p.duration} · ${p.freq}`;
+  
+  const btn = document.getElementById('btn-toggle');
+  btn.textContent = state.showProg ? '← SÉANCES' : 'PROGRESSIONS →';
+  btn.className = state.showProg ? 'active' : '';
+
+  // Phase bar
+  const pb = document.getElementById('phase-bar');
+  pb.innerHTML = '';
+  PHASES.forEach((ph, i) => {
+    const b = document.createElement('button');
+    b.className = 'phase-pill' + (i===state.phase?' active':'');
+    b.textContent = ph.label;
+    if(i===state.phase) b.style.background = ph.color;
+    b.onclick = () => { state.phase=i; state.day=0; render(); };
+    pb.appendChild(b);
+  });
+
+  // Content
+  document.getElementById('workout-view').style.display = state.showProg?'none':'block';
+  document.getElementById('progression').style.display = state.showProg?'block':'none';
+
+  if(state.showProg){
+    renderProg();
+  } else {
+    renderWorkout();
+  }
+
+  // Nav
+  const totalDays = p.days.length;
+  document.getElementById('nav-info').innerHTML = `${p.label}<br>JOUR ${String.fromCharCode(65+state.day)}`;
+  
+  const btnPrev = document.getElementById('btn-prev');
+  const btnNext = document.getElementById('btn-next');
+  btnNext.style.background = p.color;
+  
+  btnPrev.disabled = state.phase===0 && state.day===0;
+  btnNext.disabled = state.phase===PHASES.length-1 && state.day===p.days.length-1;
+}
+
+function renderWorkout(){
+  const p = getPhase();
+  const day = p.days[state.day];
+  let html = `
+    <div class="goal-banner">
+      <span class="goal-label" style="color:${p.color}">OBJECTIF : </span>${p.goal}
+    </div>
+    <div id="day-bar">
+  `;
+  p.days.forEach((d,i) => {
+    html += `<button class="day-pill${i===state.day?' active':''}" onclick="setDay(${i})">JOUR ${String.fromCharCode(65+i)}</button>`;
+  });
+  html += `</div>
+    <div class="day-title">${day.name}<div class="day-title-bar" style="background:${p.color}"></div></div>
+  `;
+  day.exercises.forEach((ex, i) => {
+    html += `
+      <div class="ex-row${ex.hl?' highlight':''}">
+        <div class="ex-num">${String(i+1).padStart(2,'0')}</div>
+        <div>
+          <div class="ex-name">${ex.n}</div>
+          ${ex.note?`<div class="ex-note">${ex.note}</div>`:''}
+        </div>
+        <div class="ex-sets" style="color:${p.color}">${ex.s}×</div>
+        <div class="ex-reps">${ex.r}</div>
+      </div>`;
+  });
+  html += `<div class="tips-section"><div class="tips-label">NOTES DE PHASE</div>`;
+  p.tips.forEach(t => {
+    html += `<div class="tip-row"><span class="tip-arrow" style="color:${p.color}">→</span><span>${t}</span></div>`;
+  });
+  html += '</div>';
+  document.getElementById('workout-view').innerHTML = html;
+  document.getElementById('content').scrollTop = 0;
+}
+
+function renderProg(){
+  const p = getPhase();
+  let html = '<table class="prog-table"><thead><tr><th>SKILL</th>';
+  PHASES.forEach((ph,i) => {
+    html += `<th style="color:${ph.color}">${ph.label.replace('PHASE ','P')}</th>`;
+  });
+  html += '</tr></thead><tbody>';
+  PROGRESSIONS.forEach(row => {
+    html += '<tr><td>'+row.skill+'</td>';
+    row.cols.forEach((v,j) => {
+      const active = j===state.phase;
+      html += `<td class="${active?'active-col':''}" style="${active?'color:'+p.color+';background:rgba(255,255,255,0.03)':'color:#444'}">${v}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('progression').innerHTML = html;
+}
+
+function toggleView(){
+  state.showProg = !state.showProg;
+  render();
+}
+
+function setDay(i){
+  state.day = i;
+  render();
+}
+
+function navigate(dir){
+  const p = getPhase();
+  if(dir === 1){
+    if(state.day < p.days.length-1) state.day++;
+    else if(state.phase < PHASES.length-1){ state.phase++; state.day=0; }
+  } else {
+    if(state.day > 0) state.day--;
+    else if(state.phase > 0){ state.phase--; state.day=PHASES[state.phase].days.length-1; }
+  }
+  render();
+}
+
+// PWA Install
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  setTimeout(() => { document.getElementById('install-banner').style.display='block'; }, 2000);
+});
+function installApp(){
+  if(!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(() => {
+    deferredPrompt = null;
+    document.getElementById('install-banner').style.display='none';
+  });
+}
+function dismissBanner(){
+  document.getElementById('install-banner').style.display='none';
+}
+
+// Service worker
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  });
+}
+
+render();
+</script>
+</body>
+</html>
